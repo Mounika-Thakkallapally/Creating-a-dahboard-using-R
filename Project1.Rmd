@@ -1,0 +1,212 @@
+---
+title: "Mouni's Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+    social: ["Twitter", "facebook", "menu"]
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(knitr)
+library(DT)
+library(rpivotTable)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(openintro)
+library(highcharter)
+library(ggvis)
+library(scatterplot3d)
+library(googleVis)
+library(igraph)
+library(plotly)
+```
+```{r}
+data<- read.csv("C:/Users/thakk/Desktop/umassD-courses/Spring-2021/POM681/project/US Airlines On Time Performance (50 variables)")
+ot <- data.frame(data)
+```
+
+```{r}
+mycolors<-c("blue","#FFC125","darkgreen","darkorange")
+```
+
+Interactive data visualization
+=========================================
+Row
+-----------------------------------------
+
+### Airline data insights
+
+```{r}
+valueBox(paste("US Airline data"),
+         color = "warning")
+```
+
+### Number of Destination cities
+
+```{r}
+uni<- unique(data$DestCityName)
+valueBox(length(uni),
+         icon = 'fa-user')
+```
+
+### Maximum distance travelled
+
+```{r}
+valueBox(max(data$Distance),
+         icon = 'fa-area-chart')
+```
+
+### Flight arrival delays
+
+```{r}
+gauge((data$ArrDelay),
+      min = -30,
+      max = 30,
+      gaugeSectors(success = c(-30,0),
+                   warning = c(0,5),
+                   danger = c(5,30),
+                   colors = c("green", "yellow", "red")))
+```
+
+Row
+-----------------------------------------
+
+### Arrival delays in a state caused by a carrier
+
+```{r}
+library(plotly)
+set.seed(100)
+plot_ly(ot, x = ot$UniqueCarrier, y= ot$ArrDelay, text = paste("Destination State:", ot$DestState), mode = "markers", color = ot$DestState) %>%
+  layout(xaxis = list(title = 'Unique Carrier',
+                      zeroline = TRUE),
+         yaxis = list(title = 'Arrival delay (mins)'))
+
+```
+
+### Top 3 highest number of flights arriving states
+
+```{r}
+ot %>% 
+  group_by(DestStateName) %>% 
+  summarise(Count=n()) %>% 
+  arrange(desc(Count))
+
+univ<-ot %>% filter(DestStateName == 'California' | DestStateName=='Texas'|DestStateName=='Illinois')
+
+univ %>%
+  ggplot(aes(x=DestStateName,fill =DestStateName))+
+  geom_bar() 
+
+```
+
+### Arrival delay vs distance
+
+```{r}
+#plot(data$Distance,data$ArrDelay, type = "p", col="blue")
+
+plot_ly(data, x = data$Distance, y= data$ArrDelay, text = paste("Distance:", data$Distance,"Arrival delay:", data$ArrDelay)) %>%
+  layout(xaxis = list(title = 'Distance',
+                      zeroline = TRUE),
+         yaxis = list(title = 'Arrival delay (mins)'))
+```
+
+Geographic plot
+=========================================
+
+```{r}
+geo <- data %>%
+         group_by(DestStateName) %>%
+         summarize(total = n())
+
+highchart() %>%
+         hc_title(text = "Airline Destination states in US") %>%
+         hc_subtitle(text = "Source: On_Time_50.csv") %>%
+         hc_add_series_map(usgeojson, geo,
+                           name = "Destination airport",
+                           value = "total",
+                           joinBy = c("woename", "DestStateName")) %>%
+         hc_mapNavigation(enabled = T)
+```
+
+Data table
+=========================================
+```{r}
+datatable(data[1:8],
+          caption = "Airline Data",
+          rownames = T,
+          filter = "top",
+          options = list(pageLength = 25))
+```
+
+Network plot
+=========================================
+```{r}
+
+y <- data.frame(ot$OriginState, ot$DestState)
+
+net <- graph.data.frame(y, directed = T)
+V(net)$label <- V(net)$name
+V(net)$degree <- degree(net)
+set.seed(222)
+
+plot(net, vertex.color = rainbow(52),
+     edge.arrow.size= 0.1,
+     layout = layout.auto,
+     main = "Connections between Origin states and Destination states")
+```
+
+Summary
+===========================================
+
+column
+-------------------------------------------
+
+### Average destination state fips
+
+```{r}
+valueBox(round(mean(data$OriginStateFips),
+               digits = 2),
+         icon = "fa-area-chart")
+```
+
+### Average CRSArrTime
+
+```{r}
+valueBox(round(mean(data$CRSArrTime), digits = 2),
+         icon = "fa-area-chart")
+```
+
+### Number of flights recorded in data
+
+```{r}
+valueBox(length(data$FlightNum),
+         icon = "fa-user" )
+```
+
+Column
+----------------------------------
+Report
+
+* This is a report on US Airline data.
+
+* The average origin state fips `r mean(data$OriginStateFips)`.
+
+* The average CRSArrTime is  `r 
+mean(data$CRSArrTime)`.
+
+* The number of flights recorded in data is `r length(data$FlightNum)`
+
+This report was generated on `r format(Sys.Date(), format = "%B %d, %Y")`.
+
+About
+===========================================
+
+The data US department of transport contains the airline information. It contains the records of airlines travelling in the united states from one city to other in the year 2014 and month October. It includes all the information regarding flight dates and different kinds of delays. For this data I have prepared a dashboard using R programming language which shows the analysis on airline data. 
+It contains 6 pages which are named as interactive data visualization, geographic plot, data table, network plot, summary and about. This dashboard can be shared over social media platforms like Facebook, Twitter, LinkedIn, Google+ and Pinterest. We can also view the source code of the dashboard.  
+
+Created by Mounika Thakkallapally
+Purpose: Course project
